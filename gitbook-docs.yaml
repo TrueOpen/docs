@@ -1,0 +1,12 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: TrueOpen Docs
+  structure:
+    - type: space
+      key: trueopen-docs
+      title: TrueOpen Docs
+      path: /
+      default: true
+      content:
+        directory: ./content
+        language: en

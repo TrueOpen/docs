@@ -1,0 +1,8 @@
+# Local editor and agent configuration
+.claude/
+.codex/
+.idea/
+.vscode/
+
+# macOS metadata
+.DS_Store
