@@ -11,6 +11,8 @@ TrueOpen is a purpose-built network for AI inference tasks. It coordinates task 
 
 ### Understand TrueOpen
 
+Read the [Whitepaper](whitepaper.md) for the design of the network and its verification methods.
+
 Start with the [Overview](overview/README.md), then explore the [system architecture](overview/architecture.md) and [participants](overview/participants.md).
 
 ### Provide compute

@@ -1,6 +1,7 @@
 # Table of contents
 
 * [TrueOpen Documentation](README.md)
+* [Whitepaper](whitepaper.md)
 * [Overview](overview/README.md)
   * [Architecture](overview/architecture.md)
   * [Participants](overview/participants.md)
