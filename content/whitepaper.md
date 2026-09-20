@@ -7,6 +7,8 @@ description: An open GPU network for verifiable and private AI inference.
 
 An Open GPU Network for Verifiable and Private AI Inference
 
+[Download PDF](assets/TrueOpen_Whitepaper.pdf)
+
 ## Abstract
 
 
