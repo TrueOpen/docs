@@ -12,7 +12,7 @@ An Open GPU Network for Verifiable and Private AI Inference
 ## Abstract
 
 
-Open-source models alone are not enough: open AI services also need an open GPU network. TrueOpen enables users to buy inference services directly from different GPU providers. The network checks inference at an economically viable cost by recomputing the output’s probability characteristics with the specified model or verifying cryptographic proofs of selected computations. Payments are settled based on verification results, and GPU providers stake funds to back their obligations and face penalties for violations. Users receive outputs without waiting for verification to finish, while verification data is retained for subsequent review. Batched on-chain submissions reduce processing overhead, allowing the network to support more tasks. Content encryption and authorized key access protect inputs and outputs; administrative privileges alone do not enable decryption.
+Open-source models alone are not enough: open AI services also need an open GPU network. TrueOpen enables users to buy inference services directly from different GPU providers. The network checks inference at an economically viable cost by recomputing the output’s probability characteristics with the specified model or verifying cryptographic proofs of selected computations. Payments are settled based on verification results, and GPU providers stake funds to back their obligations and face penalties for violations. Users receive outputs without waiting for verification to finish. Verification data is retained for review, while batched on-chain submissions reduce per-task overhead so the network can support more tasks. Private payments and separate authorization for each task reduce public links between users and their tasks, while content encryption protects inputs and outputs. Together, these mechanisms allow users to transact directly with different GPU providers and settle payments based on verifiable computation, without relying on a single platform to determine whether the computation is trustworthy, handle payments, and protect their privacy.
 
 ## 1. Introduction
 
@@ -22,7 +22,7 @@ TrueOpen allows maintainers to register models and their execution and verificat
 
 The blockchain settles payments based on verification results and slashes stake for confirmed violations under protocol rules. Verification data remains available throughout verification and disputes for subsequent review; stopping participation does not release a node from its existing obligations. Users receive results without waiting for verification and settlement to finish. As task volume grows, the network batches records from multiple tasks into on-chain submissions, amortizing transaction overhead to support inference at greater scale.
 
-Inputs and inference outputs can be encrypted, with keys delivered only to authorized participants. Administrative privileges alone do not enable decryption. Developers can build AI applications using the network’s inference services and manage fees, expenditures, and revenue distribution through smart contracts. Different providers can thus deliver services together without leaving model admission, computation verification, and payment processing entirely under the control of a single platform.
+Users pay for inference through a shielded pool. Public records do not reveal which funds in the pool a task spends. Each task is authorized with a separate key, so a long-term account or reused signing identity does not expose the user’s task history. Inputs and inference outputs can be encrypted, with keys delivered only to authorized participants; administrative privileges alone do not enable decryption. Developers can build AI applications on the network and use smart contracts to manage charges, spending, and revenue distribution. Different providers can thus deliver services together without placing model admission, computation checks, and payments under the control of a single platform.
 
 ## 2. Model Registration and Task Assignment
 
@@ -56,7 +56,7 @@ Nodes receive tasks and invoke the inference engine through local software calle
 
 ### 2.3 GPU Task Assignment: VRF-Based Candidate Selection and Future Randomness
 
-An order fixes the user's model, execution requirements, budget, and deadline. The protocol uses a verifiable random function (VRF), with stake and performance determining selection weights, to identify eligible candidates. Nodes check their eligibility locally; those willing to perform the task sign and submit a participation request.
+An order specifies the model, execution requirements, budget, and deadline. A task using private payments is authorized with its own key and funded from the shielded pool through a zero-knowledge proof, without revealing which note is spent. The protocol uses a verifiable random function (VRF), with stake and performance scores, to select candidate nodes. Nodes check whether they have been selected as candidates, and willing candidates submit signed participation requests.
 
 The Builder collects those requests, combines their signatures into a BLS aggregate signature, and submits it on-chain with the task. Candidate selection only establishes eligibility to apply; it does not determine who will execute the task. The participant list and weights are fixed when registration closes. Randomness from a designated future block then selects the Worker from that list in a separate draw, whose result was unknown when nodes applied.
 
@@ -555,9 +555,11 @@ Users need confidence that payment buys the agreed service; nodes need confidenc
 
 The order fixes service terms and a price ceiling. Once accepted on-chain, its budget is placed in escrow. Providers no longer depend on users agreeing to pay after receiving the output, and users are protected from later price increases. Settlement reflects confirmed service and workload, with unused budget returned to the user.
 
+For tasks using private payments, the budget moves from the shielded pool into escrow, and providers are paid under public settlement rules. Unused budget and refundable fees return to the pool as new notes controlled by the user, rather than being sent directly to a public payment account. Users need not be online to receive refunds and can spend or withdraw the funds later. Cancelled and failed tasks are charged for completed services; private payments do not change providers’ remuneration or obligations.
+
 Nodes stake funds to back their service obligations. Only nodes that meet the protocol’s minimum stake requirement are eligible for task assignment; those below the threshold receive no new tasks. Failure to meet service obligations or confirmed cheating triggers slashing under the protocol rules. Minimum stake requirements and penalty parameters are adjusted according to public rules.
 
-Optional encryption adds key-distribution and data-processing costs, disclosed before task submission. If an encrypted task stops because the user fails to provide required authorization, node payments follow Section 9.4. Such an authorization failure is not automatically classified as a node computation failure.
+Optional encryption adds key-distribution and data-processing costs, disclosed before task submission. If an encrypted task stops because the user fails to provide required authorization, node payments follow Section 9.5. Such an authorization failure is not automatically classified as a node computation failure.
 
 ### 6.2 Payment for Completed Service
 
@@ -625,13 +627,76 @@ Scaling should increase the number of verifications and settlements completed un
 
 Developers can use the network's inference services to build AI applications. Smart contracts manage fees, expenditures, and revenue distribution.
 
-## 9. Identity Privacy and Optional Content Encryption
+## 9. User Privacy and Content Encryption
 
-Account logins and credit-card payments can link service records to an email address, name, or payment identity. TrueOpen instead authenticates task authorization through blockchain addresses and digital signatures. Orders need not include a user's name, home address, or bank account. External information may still link an address to its owner, but real-world identity is not required for the protocol to accept a task.
+Users transact through blockchain addresses without providing names or other identifying information, reducing direct exposure of their real identities. However, if an address is linked to an identity through know-your-customer (KYC) checks or information such as an IP address, public payments, refunds, and order signatures may still connect task records to that user. TrueOpen uses a ZK-based shielded pool to conceal which notes fund a task, and separate keys for each task to avoid linking requests through a shared public user identifier. Content encryption further restricts access to inputs and outputs, while service-node identities, obligations, and settlement remain publicly verifiable.
+
+### 9.1 Shielded Pool and Task Authorization
+
+Users deposit funds into a shared shielded pool and receive private notes under their control. The chain records cryptographic commitments to the notes, while users retain the secrets needed to spend them. To submit a task, a user provides a zero-knowledge proof of spending authority over valid funds and conservation of value, without revealing which note is used. Spending a note produces a unique nullifier, which the chain uses to reject double spending.
+
+When a task is accepted, the protocol atomically consumes its input notes, moves the task budget into escrow, and creates private change notes. Providers can confirm that payment is funded, while the spending proof does not directly reveal which deposit supplied it. These zero-knowledge proofs authorize spending; they do not require a proof of the AI inference.
+
+The SDK generates a separate control key and encryption recipient key for each task. The control key authorizes orders, data retrieval, and cancellation where permitted; the encryption recipient key is used to receive encrypted key packages. Relayers submit transactions, so users need not sign tasks with a long-term account. Tasks neither reuse a public user key nor share an on-chain user Session. The SDK manages conversations and task groups locally.
+
+At final settlement, refundable funds return to the shielded pool as new notes controlled by the user, without requiring the user to be online to claim them. Cancellation requires task authorization and accounts for costs incurred at the relevant stage. Challenge bonds and verification budgets can also be paid from the pool, with refunds and rewards returned to it, so initiating a challenge does not require disclosure of a long-term account.
+
+The model, task budget, actual fees, execution status, and service-node identities remain public. Workers, Verifiers, and Builders remain accountable under their public identities. Private payments do not change inference verification, settlement, or penalty rules.
+
+Deposit and withdrawal addresses, amounts, and times remain public and may provide clues linking funds. Private mode uses relays to separate the user’s network origin from the service request, avoiding direct connections that could reveal the link between the user and the task.
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 535" role="img" aria-labelledby="en-shielded-pool-flow-title" style="display:block;width:100%;max-width:760px;height:auto;margin:24px auto;break-inside:avoid">
+<title id="en-shielded-pool-flow-title">A shielded pool conceals the direct funding link between a long-term address and a task</title>
+<defs><marker id="en-shielded-pool-flow-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="#666" stroke-width="1.2"/></marker></defs>
+<rect width="760" height="535" fill="white"/>
+<g font-family="Arial, PingFang SC, Microsoft YaHei, sans-serif">
+<text x="380" y="27" text-anchor="middle" font-size="18" font-weight="600" fill="#333">Public deposit address. Hidden choice of spending note.</text>
+<text x="115" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="#666">PUBLIC DEPOSIT</text>
+<text x="365" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="#666">SHIELDED FUNDING</text>
+<text x="625" y="66" text-anchor="middle" font-size="13" font-weight="600" fill="#666">PUBLIC TASKS</text>
+<rect x="20" y="90" width="190" height="154" rx="6" fill="#fafafa" stroke="#999"/>
+<text x="115" y="122" text-anchor="middle" font-size="15" font-weight="600" fill="#333">Long-term user address</text>
+<text x="115" y="154" text-anchor="middle" font-size="19" font-weight="400" fill="#333">0xA…</text>
+<text x="115" y="191" text-anchor="middle" font-size="13" font-weight="400" fill="#333">Address · amount · time</text>
+<text x="115" y="216" text-anchor="middle" font-size="13" font-weight="400" fill="#333">Deposit is visible</text>
+<rect x="260" y="90" width="210" height="230" rx="6" fill="#f2f2f2" stroke="#999"/>
+<text x="365" y="121" text-anchor="middle" font-size="16" font-weight="600" fill="#333">Shared shielded pool</text>
+<rect x="311" y="149" width="46" height="29" rx="6" fill="white" stroke="#999"/>
+<text x="334" y="169" text-anchor="middle" font-size="13" font-weight="400" fill="#333">A</text>
+<rect x="373" y="149" width="46" height="29" rx="6" fill="white" stroke="#999"/>
+<text x="396" y="169" text-anchor="middle" font-size="13" font-weight="400" fill="#333">B</text>
+<rect x="311" y="190" width="46" height="29" rx="6" fill="white" stroke="#999"/>
+<text x="334" y="210" text-anchor="middle" font-size="13" font-weight="400" fill="#333">C</text>
+<rect x="373" y="190" width="46" height="29" rx="6" fill="white" stroke="#999"/>
+<text x="396" y="210" text-anchor="middle" font-size="13" font-weight="400" fill="#333">D</text>
+<text x="365" y="244" text-anchor="middle" font-size="13" font-weight="400" fill="#333">Private notes in one pool</text>
+<text x="365" y="279" text-anchor="middle" font-size="13" font-weight="600" fill="#333">ZK proof authorizes spending</text>
+<text x="365" y="303" text-anchor="middle" font-size="12" font-weight="400" fill="#333">Spent note is not disclosed</text>
+<rect x="530" y="90" width="210" height="103" rx="6" fill="#fafafa" stroke="#999"/>
+<text x="635" y="117" text-anchor="middle" font-size="16" font-weight="600" fill="#333">Task A</text>
+<text x="635" y="144" text-anchor="middle" font-size="13" font-weight="400" fill="#333">Separate task key A</text>
+<text x="635" y="170" text-anchor="middle" font-size="12" font-weight="400" fill="#333">No long-term user address</text>
+<rect x="530" y="217" width="210" height="103" rx="6" fill="#fafafa" stroke="#999"/>
+<text x="635" y="244" text-anchor="middle" font-size="16" font-weight="600" fill="#333">Task B</text>
+<text x="635" y="271" text-anchor="middle" font-size="13" font-weight="400" fill="#333">Separate task key B</text>
+<text x="635" y="297" text-anchor="middle" font-size="12" font-weight="400" fill="#333">No long-term user address</text>
+<path d="M210 165 H260" fill="none" stroke="#666" stroke-width="1.3" marker-end="url(#en-shielded-pool-flow-arrow)"/>
+<text x="235" y="148" text-anchor="middle" font-size="11" font-weight="400" fill="#333">Deposit</text>
+<path d="M470 273 H498 V141 H530" fill="none" stroke="#666" stroke-width="1.3" marker-end="url(#en-shielded-pool-flow-arrow)"/>
+<path d="M498 273 V268 H530" fill="none" stroke="#666" stroke-width="1.3" marker-end="url(#en-shielded-pool-flow-arrow)"/>
+<text x="635" y="345" text-anchor="middle" font-size="12" font-weight="600" fill="#333">No reused user identifier</text>
+<line x1="20" y1="369" x2="740" y2="369" stroke="#ccc"/>
+<text x="380" y="396" text-anchor="middle" font-size="15" font-weight="600" fill="#333">Public records do not directly show: 0xA… paid for task A or B.</text>
+<text x="380" y="423" text-anchor="middle" font-size="12" font-weight="400" fill="#333">The chain checks authority, value conservation and double spending, then escrows the budget.</text>
+<text x="380" y="448" text-anchor="middle" font-size="12" font-weight="400" fill="#333">Providers are paid publicly; change and refunds return to the pool as new notes.</text>
+<text x="380" y="487" text-anchor="middle" font-size="12" font-weight="400" fill="#666">The direct funding link is concealed, not the public deposit address itself.</text>
+<text x="380" y="511" text-anchor="middle" font-size="12" font-weight="400" fill="#666">Public amounts and timing may still provide linking clues.</text>
+</g>
+</svg>
 
 Keeping identity details out of an order does not protect the submitted content. The network therefore offers optional encryption for inputs and inference outputs. When enabled, data is encrypted before upload; Builders store and relay ciphertext, while Workers and Verifiers receive only the decryption keys required for their task roles. The project team, storage nodes, and other organizations cannot decrypt user content merely by virtue of their identity or administrative privileges.
 
-### 9.1 Delivering Encrypted Data to Selected Nodes
+### 9.2 Delivering Encrypted Data to Selected Nodes
 
 For each encrypted task, the SDK creates a fresh task master key and derives purpose-specific keys. It uploads an encrypted input, leaving candidate GPU nodes to apply using public task information alone. Once the Worker is selected using randomness from a future block that was unpredictable in advance, the SDK verifies both its on-chain assignment and the authenticity of its encryption public key before encrypting the master key for it. The Worker uses its private key to open the encrypted key package, then decrypts and checks the input before running inference.
 
@@ -639,7 +704,7 @@ The scheme combines AES-256-GCM authenticated encryption for bulk data with ECIE
 
 The output key is derived from the same task master key. The SDK already holds that key and can derive the output decryption key using the stream context signed by the Worker, without another secret-key delivery. Input, output, and original token records use purpose-specific subkeys. This separates uses, not access rights: anyone holding the master key can derive all of them.
 
-### 9.2 Limiting Data Access to Authorized Verifiers
+### 9.3 Limiting Data Access to Authorized Verifiers
 
 Once verifiers have been selected using future block randomness that was unpredictable in advance, the Worker checks their identities and task authorization before delivering the keys needed for verification. Applying as a candidate does not grant access to these keys. Builders likewise gain no decryption rights merely by storing and relaying ciphertext.
 
@@ -698,7 +763,7 @@ Authorized verifiers need to read the input, inference output, and original toke
 
 Builders may relay and retain encrypted key packages but cannot decrypt them. The task master key is independent of the key for the Worker's comparison values, which is delivered only in the reveal phase.
 
-### 9.3 Checking Stored Data Without Decrypting It
+### 9.4 Checking Stored Data Without Decrypting It
 
 Confidentiality does not prevent integrity checks. Producers separately commit to ciphertext and its underlying content, signing records that bind both to the task and delivery. Builders check received and stored bytes against ciphertext commitments; users and verifiers decrypt them and check the content commitments. Signing both commitments identifies who is accountable for the claimed correspondence, but recipients must still decrypt to verify that the two correspond.
 
@@ -706,13 +771,13 @@ Streamed outputs also require checks of chunk numbers, ordering, and final lengt
 
 Storage and relay thus need no decryption keys, but the scheme neither hides inputs from the Worker nor revokes plaintext already obtained by an authorized node. Encryption protects the content, but metadata such as data length and access times may remain public.
 
-### 9.4 Online Obligations and Subsequent Review
+### 9.5 Online Obligations and Subsequent Review
 
 Users choosing encryption must keep their SDK online until verification ends and supply required signatures and keys within the deadlines. If missing user authorization prevents the task or verification from continuing, the protocol still pays Worker and Verifier fees under the encrypted task's agreed terms. This condition is disclosed before submission. Payment does not itself establish that the computation passed verification.
 
 Workers and Verifiers must also retain keys while their obligations remain open and deliver them to authorized recipients at the appropriate phase. When a new verifier joins a later review, the node responsible for key delivery must encrypt the key for that recipient. Existing encrypted key packages are usable only by their original recipients; a Builder cannot convert them for someone else. Even intact ciphertext cannot guarantee continued verification if every authorized key holder becomes unavailable.
 
-### 9.5 Retention and Access Scope
+### 9.6 Retention and Access Scope
 
 Commitments and settlement records remain on-chain permanently. DA data must be retained until the obligations defined by the on-chain cleanup height and storage lease have ended, and cannot be deleted while verification or dispute obligations remain outstanding. The protocol does not let users unilaterally delete or withdraw previously submitted data.
 
@@ -730,13 +795,13 @@ Workers and Verifiers automatically delete locally retained plaintext inputs aft
 
 Open-source models allow people to run AI themselves. But for GPUs from different providers to serve users, the network must also address trust in the computation, payment, and the privacy of user content. With TrueOpen, users do not have to rely solely on a provider’s word that the computation was performed. Payments are settled based on verification results, and nodes that violate the rules are held accountable.
 
-Users receive inference results without waiting for verification and settlement to finish. They can also protect the privacy of their inputs and outputs through content encryption and controlled access to decryption keys. Different providers can contribute compute to the same network, and developers can use it to build AI services without a single platform controlling both the services and user data.
+Users receive inference results without waiting for verification and settlement to finish. The shielded pool conceals which notes fund each task, separate task keys reduce identity links between requests, and content encryption protects inputs and outputs. Providers’ obligations and settlement remain publicly verifiable. Different providers can therefore contribute compute to the same network, and developers can use it to build AI services without a single platform controlling both the services and user data.
 
 ## References
 
 [1] Satoshi Nakamoto. [Bitcoin: A Peer-to-Peer Electronic Cash System](https://bitcoin.org/bitcoin.pdf). 2008.
 
-[2] TrueOpen. SLP Verifiable Inference: Proof-of-Concept Experiment Report (with raw run logs and data tables). September 2026. Report: [https://github.com/TrueOpen/slp-experiments/blob/main/REPORT.md](https://github.com/TrueOpen/slp-experiments/blob/main/REPORT.md) ; data repository: [https://github.com/TrueOpen/slp-experiments](https://github.com/TrueOpen/slp-experiments)
+[2] TrueOpen. SLP Verifiable Inference: Proof-of-Concept Experiment Report (with raw run logs and data tables). September 2026. Report: [https://github.com/TrueOpen/slp-experiments/blob/main/REPORT.md](https://github.com/TrueOpen/slp-experiments/blob/main/REPORT.md) ; data repository: [https://github.com/TrueOpen/slp-experiments](https://github.com/TrueOpen/slp-experiments); paper: [arXiv:2609.27367](https://arxiv.org/abs/2609.27367)
 
 [3] TrueOpen. Logprob Majority-Consensus Verification (LMCV): A Low-Cost Execution-Verification Protocol for Open Inference Networks. September 2026. Paper: [https://github.com/TrueOpen/lmcv-experiments/blob/main/paper/LMCV.md](https://github.com/TrueOpen/lmcv-experiments/blob/main/paper/LMCV.md)
 
