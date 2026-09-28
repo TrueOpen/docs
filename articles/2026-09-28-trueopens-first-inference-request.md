@@ -20,7 +20,7 @@ The engineering work ahead of TrueOpen remains immense. Over the past three year
 
 **On September 18, 2026, we submitted the first inference request through trueopen.ai.**
 
-The model was **Qwen3.8-27B-FP8**. That first task has a public record:
+The model was **Qwen3.8-28B-FP8**. That first task has a public record:
 
 **Task ID**
 
