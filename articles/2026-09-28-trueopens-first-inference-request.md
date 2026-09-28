@@ -30,6 +30,10 @@ bcf1582208d089272a8f6b4dbd7b65bdc31b17a02c6e7dd8361ff3b0851f9866
 
 [View the first inference task on the TrueOpen Explorer ↗](https://explorer-testnet.trueopen.ai/en/task/bcf1582208d089272a8f6b4dbd7b65bdc31b17a02c6e7dd8361ff3b0851f9866)
 
+![An on-chain inference task submitted and answered on trueopen.ai](assets/2026-09-28-trueopens-first-inference-request/on-chain-task-on-trueopen-ai.webp)
+
+*An on-chain inference task submitted and answered on trueopen.ai.*
+
 **Today, September 28, 2026, the TrueOpen Beta network officially launches.**
 
 At launch, the network is supported by four GPUs, four Validators, and three Builders.
