@@ -18,7 +18,7 @@ TrueOpen’s first inference request also came with a wait. The current Beta’s
 
 The engineering work ahead of TrueOpen remains immense. Over the past three years, there were countless moments when we considered giving up. Our commitment to this mission kept bringing us back—to solve the next problem, build the next part of the system, and bring the idea a little closer to reality.
 
-**On September 18, 2026, we submitted the first inference request through trueopen.ai.**
+**On September 28, 2026, we submitted the first inference request through trueopen.ai.**
 
 The model was **Qwen3.8-27B-FP8**. That first task has a public record:
 
